@@ -4,6 +4,11 @@ import { logger } from './lib/logger.js';
 import { requestId } from './middleware/request-id.js';
 import authRouter from './routes/auth.js';
 import healthRouter from './routes/health.js';
+import adminRouter from './routes/admin.js';
+import salesRouter from './routes/sales.js';
+import buyRouter from './routes/buy.js';
+import metricsRouter from './routes/metrics.js';
+import ordersRouter from './routes/orders.js';
 import { env } from './lib/env.js';
 
 export function createApp(): express.Application {
@@ -23,6 +28,11 @@ export function createApp(): express.Application {
 
   app.use('/health', healthRouter);
   app.use('/auth', authRouter);
+  app.use('/admin', adminRouter);
+  app.use('/sales', salesRouter);
+  app.use('/sales', buyRouter);
+  app.use('/orders', ordersRouter);
+  app.use('/metrics', metricsRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
