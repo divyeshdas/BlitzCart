@@ -27,6 +27,8 @@
 	let products = $state<SaleProduct[]>([]);
 	let error = $state('');
 	let loaded = $state(false);
+	let buying = $state<Record<string, boolean>>({});
+	let buyResult = $state<Record<string, { success: boolean; message: string }>>({});
 
 	const saleId = $derived(page.params.id);
 
@@ -41,6 +43,36 @@
 			loaded = true;
 		}
 	});
+
+	async function handleBuy(productId: string) {
+		buying[productId] = true;
+		buyResult[productId] = { success: false, message: '' };
+
+		try {
+			const res = await api<{ orderId: string; remaining: number }>(`/sales/${saleId}/buy`, {
+				method: 'POST',
+				body: { productId },
+			});
+
+			// Update local stock optimistically
+			products = products.map((p) =>
+				p.id === productId ? { ...p, inventoryRemaining: res.remaining } : p,
+			);
+			buyResult[productId] = { success: true, message: `Order placed! #${res.orderId.slice(0, 8)}` };
+		} catch (err) {
+			const msg =
+				err instanceof ApiError
+					? err.status === 410
+						? 'Sold out'
+						: err.status === 429
+							? 'Too many requests — slow down'
+							: err.message
+					: 'Something went wrong';
+			buyResult[productId] = { success: false, message: msg };
+		} finally {
+			buying[productId] = false;
+		}
+	}
 
 	function stockPct(p: SaleProduct) {
 		const remaining = p.inventoryRemaining ?? p.quantity;
@@ -148,14 +180,23 @@
 							</div>
 						</div>
 
+						{#if buyResult[product.id]?.message}
+							<p class="mt-3 text-center text-xs font-medium {buyResult[product.id].success ? 'text-green-600' : 'text-red-500'}">
+								{buyResult[product.id].message}
+							</p>
+						{/if}
+
 						<button
-							disabled={remaining === 0 || sale.status !== 'active' || !$auth}
-							class="mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition
+							disabled={remaining === 0 || sale.status !== 'active' || !$auth || buying[product.id]}
+							onclick={() => handleBuy(product.id)}
+							class="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition
 								disabled:cursor-not-allowed disabled:opacity-40
 								enabled:bg-blue-600 enabled:text-white enabled:hover:bg-blue-700"
 							title={!$auth ? 'Sign in to buy' : undefined}
 						>
-							{#if remaining === 0}
+							{#if buying[product.id]}
+								Placing order…
+							{:else if remaining === 0}
 								Sold out
 							{:else if sale.status !== 'active'}
 								Unavailable
