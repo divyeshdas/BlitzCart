@@ -4,6 +4,7 @@ import { env } from './lib/env.js';
 import { logger } from './lib/logger.js';
 import { connectRedis, closeRedis } from './lib/redis.js';
 import { closeDb } from './db/index.js';
+import { startScheduler } from './services/scheduler.js';
 
 async function main(): Promise<void> {
   await connectRedis();
@@ -11,6 +12,7 @@ async function main(): Promise<void> {
 
   const app = createApp();
   const server = http.createServer(app);
+  const schedulerTask = startScheduler();
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, 'server listening');
@@ -18,6 +20,7 @@ async function main(): Promise<void> {
 
   async function shutdown(signal: string): Promise<void> {
     logger.info({ signal }, 'shutdown signal received');
+    schedulerTask.stop();
     server.close(async () => {
       await closeRedis();
       await closeDb();
