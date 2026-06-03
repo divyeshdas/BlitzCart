@@ -25,4 +25,10 @@ export const inventoryGauge = new client.Gauge({
   labelNames: ['sale_id', 'product_id'] as const,
 });
 
+export const wsClientsGauge = new client.Gauge({
+  name: 'ws_connected_clients',
+  help: 'Currently connected WebSocket clients per sale',
+  labelNames: ['sale_id'] as const,
+});
+
 export const registry = client.register;
