@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { api, ApiError } from '$lib/api';
+	import { createSaleSocket } from '$lib/ws-client';
+	import { inventoryStore } from '$stores/inventory';
 	import { auth } from '$stores/auth';
 	import Countdown from '$components/Countdown.svelte';
 	import StatusBadge from '$components/StatusBadge.svelte';
@@ -29,19 +31,58 @@
 	let loaded = $state(false);
 	let buying = $state<Record<string, boolean>>({});
 	let buyResult = $state<Record<string, { success: boolean; message: string }>>({});
+	let wsStatus = $state<'connecting' | 'connected' | 'disconnected'>('connecting');
+	let connectedCount = $state(0);
 
-	const saleId = $derived(page.params.id);
+	const saleId = $derived(page.params['id'] ?? '');
 
-	onMount(async () => {
+	let socket: ReturnType<typeof createSaleSocket> | null = null;
+
+	async function loadSale() {
 		try {
 			const res = await api<{ sale: Sale; products: SaleProduct[] }>(`/sales/${saleId}`);
 			sale = res.sale;
 			products = res.products;
+
+			// Seed the inventory store from REST data
+			const seedMap: Record<string, number> = {};
+			for (const p of res.products) {
+				seedMap[p.id] = p.inventoryRemaining ?? p.quantity;
+			}
+			inventoryStore.seed(seedMap);
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Failed to load sale';
 		} finally {
 			loaded = true;
 		}
+	}
+
+	onMount(async () => {
+		await loadSale();
+
+		socket = createSaleSocket(saleId, (msg) => {
+			if (msg.type === 'inventory-update') {
+				inventoryStore.update(msg.productId, msg.remaining);
+			}
+		});
+
+		// Sync reactive wsStatus and connectedCount from store subscriptions
+		socket.status.subscribe((s) => (wsStatus = s));
+		socket.connectedCount.subscribe((n) => (connectedCount = n));
+
+		// On reconnect: re-fetch REST to get latest state, then WS takes over
+		let prevStatus: typeof wsStatus = wsStatus;
+		socket.status.subscribe((s) => {
+			if (prevStatus === 'disconnected' && s === 'connected') {
+				void loadSale();
+			}
+			prevStatus = s;
+		});
+	});
+
+	onDestroy(() => {
+		socket?.destroy();
+		inventoryStore.reset();
 	});
 
 	async function handleBuy(productId: string) {
@@ -54,10 +95,8 @@
 				body: { productId },
 			});
 
-			// Update local stock optimistically
-			products = products.map((p) =>
-				p.id === productId ? { ...p, inventoryRemaining: res.remaining } : p,
-			);
+			// Optimistic update — WS will confirm shortly
+			inventoryStore.update(productId, res.remaining);
 			buyResult[productId] = { success: true, message: `Order placed! #${res.orderId.slice(0, 8)}` };
 		} catch (err) {
 			const msg =
@@ -74,21 +113,21 @@
 		}
 	}
 
-	function stockPct(p: SaleProduct) {
-		const remaining = p.inventoryRemaining ?? p.quantity;
-		if (p.quantity === 0) return 0;
-		return Math.round((remaining / p.quantity) * 100);
+	function stockPct(productId: string, total: number): number {
+		const remaining = $inventoryStore[productId] ?? total;
+		if (total === 0) return 0;
+		return Math.round((remaining / total) * 100);
 	}
 
-	function barColor(pct: number) {
+	function barColor(pct: number): string {
 		if (pct > 50) return 'bg-green-500';
 		if (pct > 10) return 'bg-amber-400';
 		return 'bg-red-500';
 	}
 
-	function discount(original: string, sale: string) {
+	function discount(original: string, salePrice: string): number {
 		const o = parseFloat(original);
-		const s = parseFloat(sale);
+		const s = parseFloat(salePrice);
 		if (o === 0) return 0;
 		return Math.round(((o - s) / o) * 100);
 	}
@@ -99,8 +138,30 @@
 </svelte:head>
 
 <main class="mx-auto max-w-5xl px-4 py-10">
-	<div class="mb-2">
+	<div class="mb-2 flex items-center justify-between">
 		<a href="/sales" class="text-sm hover:underline" style="color: var(--text-muted)">← All sales</a>
+
+		<!-- WS connection status + connected count badge -->
+		<div class="flex items-center gap-2 text-xs" style="color: var(--text-muted)">
+			{#if sale?.status === 'active'}
+				<span class="flex items-center gap-1.5">
+					<span
+						class="inline-block h-2 w-2 rounded-full {wsStatus === 'connected'
+							? 'bg-green-500'
+							: wsStatus === 'connecting'
+								? 'bg-amber-400 animate-pulse'
+								: 'bg-red-400'}"
+					></span>
+					{#if wsStatus === 'connected'}
+						{connectedCount} watching
+					{:else if wsStatus === 'connecting'}
+						Connecting…
+					{:else}
+						Reconnecting…
+					{/if}
+				</span>
+			{/if}
+		</div>
 	</div>
 
 	{#if error}
@@ -110,7 +171,7 @@
 			<div class="h-10 w-64 rounded-lg" style="background: var(--bg-card)"></div>
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each [1, 2, 3] as _}
-					<div class="h-48 rounded-2xl" style="background: var(--bg-card)"></div>
+					<div class="h-52 rounded-2xl" style="background: var(--bg-card)"></div>
 				{/each}
 			</div>
 		</div>
@@ -141,10 +202,12 @@
 		{:else}
 			<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 				{#each products as product}
-					{@const remaining = product.inventoryRemaining ?? product.quantity}
-					{@const pct = stockPct(product)}
+					{@const remaining = $inventoryStore[product.id] ?? product.quantity}
+					{@const pct = stockPct(product.id, product.quantity)}
 					{@const disc = discount(product.originalPrice, product.salePrice)}
-					<div class="flex flex-col rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border)">
+					<div class="flex flex-col rounded-2xl border p-5 transition-shadow hover:shadow-sm"
+						style="background: var(--bg-card); border-color: var(--border)">
+
 						<div class="mb-1 flex items-start justify-between gap-2">
 							<h3 class="font-semibold leading-snug">{product.name}</h3>
 							{#if disc > 0}
@@ -161,15 +224,16 @@
 							{/if}
 						</div>
 
+						<!-- Sold-out banner overlays the bar when stock hits zero -->
+						{#if remaining === 0}
+							<div class="mb-3 rounded-lg bg-red-50 py-2 text-center text-xs font-bold uppercase tracking-widest text-red-600 dark:bg-red-900/20 dark:text-red-400">
+								Sold out
+							</div>
+						{/if}
+
 						<div class="mt-auto space-y-1.5">
 							<div class="flex justify-between text-xs" style="color: var(--text-muted)">
-								<span>
-									{#if remaining === 0}
-										Sold out
-									{:else}
-										{remaining} left
-									{/if}
-								</span>
+								<span>{remaining} of {product.quantity} left</span>
 								<span>{pct}%</span>
 							</div>
 							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
