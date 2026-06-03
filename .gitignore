@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# build artifacts
+dist/
+.svelte-kit/
+build/
+.vercel/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# test output
+load-tests/results/*.txt
+coverage/
+
+# docker volumes
+postgres-data/
+redis-data/
+grafana-data/
