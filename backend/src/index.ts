@@ -7,6 +7,8 @@ import { closeDb } from './db/index.js';
 import { startScheduler } from './services/scheduler.js';
 import { loadLuaScripts } from './services/lua-scripts.js';
 import { startOrderWorker } from './workers/order.worker.js';
+import { attachWebSocketServer, getAllRoomSizes } from './services/ws-server.js';
+import { wsClientsGauge } from './lib/metrics.js';
 
 async function main(): Promise<void> {
   await connectRedis();
@@ -16,8 +18,15 @@ async function main(): Promise<void> {
 
   const app = createApp();
   const server = http.createServer(app);
+  const wss = attachWebSocketServer(server);
   const schedulerTask = startScheduler();
   const orderWorker = startOrderWorker();
+
+  setInterval(() => {
+    for (const [saleId, count] of getAllRoomSizes()) {
+      wsClientsGauge.set({ sale_id: saleId }, count);
+    }
+  }, 5000);
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, 'server listening');
@@ -26,6 +35,7 @@ async function main(): Promise<void> {
   async function shutdown(signal: string): Promise<void> {
     logger.info({ signal }, 'shutdown signal received');
     schedulerTask.stop();
+    wss.close();
     server.close(async () => {
       await orderWorker.close();
       await closeRedis();

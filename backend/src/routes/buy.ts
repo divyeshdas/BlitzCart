@@ -7,6 +7,7 @@ import { evalAtomicBuy, evalRateLimit } from '../services/lua-scripts.js';
 import { orderQueue } from '../lib/queue.js';
 import { requireAuth } from '../middleware/auth.js';
 import { buyRequestsTotal, buyLatencyMs, inventoryGauge } from '../lib/metrics.js';
+import { redis } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -80,6 +81,12 @@ router.post('/:saleId/buy', requireAuth, async (req, res) => {
   inventoryGauge.set({ sale_id: saleId, product_id: productId }, remaining);
   buyRequestsTotal.inc({ result: 'accepted' });
   buyLatencyMs.observe(Date.now() - start);
+
+  // Publish before responding — WS broadcast is fire-and-forget
+  void redis.publish(
+    `inventory-update:${saleId}`,
+    JSON.stringify({ productId, remaining, ts: Date.now() }),
+  );
 
   logger.info({ orderId, userId, saleId, productId, remaining }, 'buy accepted');
 
