@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, count, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/index.js';
-import { sales, products } from '../db/schema/index.js';
+import { sales, products, orders } from '../db/schema/index.js';
 import { seedInventory, getInventoryCounts } from '../services/inventory.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
@@ -118,6 +118,56 @@ router.get('/sales/:id', async (req, res) => {
   res.json({
     sale,
     products: saleProducts.map((p) => ({ ...p, inventoryRemaining: inventory[p.id] ?? null })),
+  });
+});
+
+router.get('/sales/:id/orders', async (req, res) => {
+  const saleId = req.params['id'] ?? '';
+
+  const [sale] = await db.select({ id: sales.id, name: sales.name }).from(sales).where(eq(sales.id, saleId));
+  if (!sale) {
+    res.status(404).json({ error: 'Sale not found', code: 'NOT_FOUND', requestId: req.id });
+    return;
+  }
+
+  const allOrders = await db
+    .select({
+      id: orders.id,
+      status: orders.status,
+      createdAt: orders.createdAt,
+      productName: products.name,
+      salePrice: products.salePrice,
+      userId: orders.userId,
+    })
+    .from(orders)
+    .innerJoin(products, eq(orders.productId, products.id))
+    .where(eq(orders.saleId, saleId))
+    .orderBy(orders.createdAt);
+
+  const [stats] = await db
+    .select({ total: count() })
+    .from(orders)
+    .where(eq(orders.saleId, saleId));
+
+  const [confirmed] = await db
+    .select({ total: count() })
+    .from(orders)
+    .where(and(eq(orders.saleId, saleId), eq(orders.status, 'confirmed')));
+
+  const [failed] = await db
+    .select({ total: count() })
+    .from(orders)
+    .where(and(eq(orders.saleId, saleId), eq(orders.status, 'failed')));
+
+  res.json({
+    sale,
+    orders: allOrders,
+    stats: {
+      total: stats?.total ?? 0,
+      confirmed: confirmed?.total ?? 0,
+      failed: failed?.total ?? 0,
+      pending: (stats?.total ?? 0) - (confirmed?.total ?? 0) - (failed?.total ?? 0),
+    },
   });
 });
 

@@ -8,6 +8,7 @@ import adminRouter from './routes/admin.js';
 import salesRouter from './routes/sales.js';
 import buyRouter from './routes/buy.js';
 import metricsRouter from './routes/metrics.js';
+import ordersRouter from './routes/orders.js';
 import { env } from './lib/env.js';
 
 export function createApp(): express.Application {
@@ -30,6 +31,7 @@ export function createApp(): express.Application {
   app.use('/admin', adminRouter);
   app.use('/sales', salesRouter);
   app.use('/sales', buyRouter);
+  app.use('/orders', ordersRouter);
   app.use('/metrics', metricsRouter);
 
   app.use((_req, res) => {
