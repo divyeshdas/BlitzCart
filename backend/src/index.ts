@@ -5,14 +5,19 @@ import { logger } from './lib/logger.js';
 import { connectRedis, closeRedis } from './lib/redis.js';
 import { closeDb } from './db/index.js';
 import { startScheduler } from './services/scheduler.js';
+import { loadLuaScripts } from './services/lua-scripts.js';
+import { startOrderWorker } from './workers/order.worker.js';
 
 async function main(): Promise<void> {
   await connectRedis();
   logger.info('redis connected');
 
+  await loadLuaScripts();
+
   const app = createApp();
   const server = http.createServer(app);
   const schedulerTask = startScheduler();
+  const orderWorker = startOrderWorker();
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, 'server listening');
@@ -22,6 +27,7 @@ async function main(): Promise<void> {
     logger.info({ signal }, 'shutdown signal received');
     schedulerTask.stop();
     server.close(async () => {
+      await orderWorker.close();
       await closeRedis();
       await closeDb();
       logger.info('graceful shutdown complete');
