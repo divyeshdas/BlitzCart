@@ -69,6 +69,7 @@
 				{#if $auth.role === 'admin'}
 					<a href="/admin/sales" class="text-sm font-medium text-blue-600 hover:underline">Admin</a>
 				{/if}
+				<a href="/orders" class="text-sm font-medium hover:underline" style="color: var(--text-muted)">My orders</a>
 				<span class="text-sm" style="color: var(--text-muted)">{$auth.email}</span>
 				<button
 					onclick={() => auth.logout()}
