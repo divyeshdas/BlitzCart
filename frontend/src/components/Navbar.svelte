@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { auth } from '$stores/auth';
 	import { page } from '$app/state';
+
+	function signOut() {
+		auth.logout();
+		goto('/sales');
+	}
 
 	let dark = $state(false);
 	let menuOpen = $state(false);
@@ -105,7 +111,7 @@
 			{#if $auth}
 				<span class="hidden text-xs md:block" style="color: var(--text-muted)">{$auth.email}</span>
 				<button
-					onclick={() => auth.logout()}
+					onclick={signOut}
 					class="hidden rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:opacity-75 md:block"
 					style="border-color: var(--border); color: var(--text-primary)"
 				>
@@ -178,7 +184,7 @@
 					{#if $auth}
 						<p class="px-3 py-1 text-xs" style="color: var(--text-muted)">{$auth.email}</p>
 						<button
-							onclick={() => { auth.logout(); menuOpen = false; }}
+							onclick={() => { signOut(); menuOpen = false; }}
 							class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition hover:opacity-75"
 							style="color: var(--text-primary)"
 						>
