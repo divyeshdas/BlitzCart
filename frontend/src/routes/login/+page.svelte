@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { api, ApiError } from '$lib/api';
 	import { auth } from '$stores/auth';
 
@@ -8,6 +9,9 @@
 	let showPassword = $state(false);
 	let error = $state('');
 	let loading = $state(false);
+
+	// Show success banner when redirected from register
+	const justRegistered = $derived(page.url.searchParams.get('registered') === 'true');
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
@@ -24,7 +28,11 @@
 			auth.login(res.user, res.accessToken, res.refreshToken);
 			await goto(res.user.role === 'admin' ? '/admin/sales' : '/sales');
 		} catch (err) {
-			error = err instanceof ApiError ? err.message : 'Something went wrong';
+			if (err instanceof ApiError && err.status === 401) {
+				error = '⚠ The email or password you entered is incorrect. Please try again.';
+			} else {
+				error = '⚠ Something went wrong. Please try again.';
+			}
 		} finally {
 			loading = false;
 		}
@@ -64,10 +72,17 @@
 				<p class="mt-1 text-sm" style="color: var(--text-muted)">Sign in to join the drop</p>
 			</div>
 
+			{#if justRegistered}
+				<div class="mb-5 flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+					<span class="mt-0.5 shrink-0">✅</span>
+					<span>Account created! Sign in with your new credentials below.</span>
+				</div>
+			{/if}
+
 			<div class="rounded-2xl border p-8 shadow-sm" style="background: var(--bg-card); border-color: var(--border)">
 				{#if error}
-					<div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
-						{error}
+					<div class="mb-4 flex items-start gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+						<span>{error}</span>
 					</div>
 				{/if}
 
@@ -86,7 +101,12 @@
 					</div>
 
 					<div>
-						<label class="mb-1.5 block text-sm font-medium" for="password">Password</label>
+						<div class="mb-1.5 flex items-center justify-between">
+							<label class="text-sm font-medium" for="password">Password</label>
+							<a href="/forgot-password" class="text-xs font-medium text-blue-600 hover:underline">
+								Forgot password?
+							</a>
+						</div>
 						<div class="relative">
 							<input
 								id="password"

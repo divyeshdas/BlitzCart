@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api';
-	import { auth } from '$stores/auth';
 
 	let email = $state('');
 	let password = $state('');
@@ -16,22 +15,19 @@
 		error = '';
 
 		if (password !== confirm) {
-			error = 'Passwords do not match';
+			error = '⚠ Passwords do not match';
 			return;
 		}
 
 		loading = true;
 		try {
-			const res = await api<{
-				accessToken: string;
-				refreshToken: string;
-				user: { id: string; email: string; role: 'user' | 'admin' };
-			}>('/auth/register', { method: 'POST', body: { email, password } });
-
-			auth.login(res.user, res.accessToken, res.refreshToken);
-			await goto('/sales');
+			await api('/auth/register', { method: 'POST', body: { email, password } });
+			// Don't auto-login — send to login page with a success flag
+			await goto('/login?registered=true');
 		} catch (err) {
-			error = err instanceof ApiError ? err.message : 'Something went wrong';
+			error = err instanceof ApiError
+				? `⚠ ${err.message}`
+				: '⚠ Something went wrong. Please try again.';
 		} finally {
 			loading = false;
 		}

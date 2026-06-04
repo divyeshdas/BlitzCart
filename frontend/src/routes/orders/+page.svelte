@@ -19,8 +19,13 @@
 	let error = $state('');
 	let loaded = $state(false);
 
+	// Redirect immediately if auth is lost (covers mid-session sign out)
+	$effect(() => {
+		if (!$auth) goto('/login');
+	});
+
 	onMount(async () => {
-		if (!$auth) { goto('/login'); return; }
+		if (!$auth) return;
 
 		try {
 			const res = await api<{ orders: OrderRow[] }>('/orders/me');

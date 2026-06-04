@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api';
+	import { auth } from '$stores/auth';
 	import StatusBadge from '$components/StatusBadge.svelte';
+
+	$effect(() => {
+		if (!$auth || $auth.role !== 'admin') goto('/login');
+	});
 
 	const pricePattern = '^\\d+(\\.\\d{1,2})?$';
 

@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { api, ApiError } from '$lib/api';
+	import { auth } from '$stores/auth';
 	import StatusBadge from '$components/StatusBadge.svelte';
 	import Countdown from '$components/Countdown.svelte';
+
+	$effect(() => {
+		if (!$auth || $auth.role !== 'admin') goto('/login');
+	});
 
 	type OrderRow = {
 		id: string;
