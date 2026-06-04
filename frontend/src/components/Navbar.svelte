@@ -6,7 +6,7 @@
 
 	function signOut() {
 		auth.logout();
-		goto('/sales');
+		goto('/login');
 	}
 
 	let dark = $state(false);
