@@ -131,148 +131,195 @@
 		if (o === 0) return 0;
 		return Math.round(((o - s) / o) * 100);
 	}
+
+	const productGradients = [
+		'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+		'linear-gradient(135deg, #f97316, #ec4899)',
+		'linear-gradient(135deg, #10b981, #3b82f6)',
+		'linear-gradient(135deg, #8b5cf6, #ec4899)',
+		'linear-gradient(135deg, #f59e0b, #ef4444)',
+	];
 </script>
 
 <svelte:head>
 	<title>{sale?.name ?? 'Sale'} — BlitzCart</title>
 </svelte:head>
 
-<main class="mx-auto max-w-5xl px-4 py-10">
-	<div class="mb-2 flex items-center justify-between">
-		<a href="/sales" class="text-sm hover:underline" style="color: var(--text-muted)">← All sales</a>
-
-		<!-- WS connection status + connected count badge -->
-		<div class="flex items-center gap-2 text-xs" style="color: var(--text-muted)">
-			{#if sale?.status === 'active'}
-				<span class="flex items-center gap-1.5">
-					<span
-						class="inline-block h-2 w-2 rounded-full {wsStatus === 'connected'
-							? 'bg-green-500'
-							: wsStatus === 'connecting'
-								? 'bg-amber-400 animate-pulse'
-								: 'bg-red-400'}"
-					></span>
-					{#if wsStatus === 'connected'}
-						{connectedCount} watching
-					{:else if wsStatus === 'connecting'}
-						Connecting…
-					{:else}
-						Reconnecting…
-					{/if}
-				</span>
-			{/if}
-		</div>
-	</div>
-
-	{#if error}
-		<div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-	{:else if !loaded}
+{#if error}
+	<main class="mx-auto max-w-5xl px-4 py-10">
+		<a href="/sales" class="mb-4 inline-block text-sm hover:underline" style="color: var(--text-muted)">← All sales</a>
+		<div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{error}</div>
+	</main>
+{:else if !loaded}
+	<main class="mx-auto max-w-5xl px-4 py-10">
 		<div class="animate-pulse space-y-6">
-			<div class="h-10 w-64 rounded-lg" style="background: var(--bg-card)"></div>
+			<div class="skeleton h-40 rounded-2xl"></div>
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each [1, 2, 3] as _}
-					<div class="h-52 rounded-2xl" style="background: var(--bg-card)"></div>
+					<div class="skeleton h-56 rounded-2xl"></div>
 				{/each}
 			</div>
 		</div>
-	{:else if sale}
-		<div class="mb-8 flex flex-wrap items-start gap-4">
-			<div class="flex-1">
-				<div class="flex items-center gap-3">
-					<h1 class="text-2xl font-bold">{sale.name}</h1>
-					<StatusBadge status={sale.status} />
+	</main>
+{:else if sale}
+	<!-- Full-width hero -->
+	<div
+		class="relative overflow-hidden py-10 text-white"
+		style="background: linear-gradient(135deg, #1d4ed8, #7c3aed)"
+	>
+		<div class="relative mx-auto max-w-5xl px-4">
+			<a href="/sales" class="mb-4 inline-flex items-center gap-1 text-sm opacity-70 hover:opacity-100 transition">
+				← All sales
+			</a>
+			<div class="flex flex-wrap items-start gap-4">
+				<div class="flex-1">
+					<div class="flex flex-wrap items-center gap-3">
+						<h1 class="text-3xl font-black tracking-tight">{sale.name}</h1>
+						<StatusBadge status={sale.status} />
+					</div>
+
+					{#if sale.status === 'active'}
+						<div class="mt-2 flex flex-wrap items-center gap-4">
+							<p class="text-sm opacity-80">
+								Ends in <span class="font-bold opacity-100"><Countdown endsAt={sale.endsAt} /></span>
+							</p>
+
+							<!-- WS status -->
+							<span class="flex items-center gap-1.5 text-sm opacity-80">
+								<span
+									class="inline-block h-2 w-2 rounded-full {wsStatus === 'connected'
+										? 'bg-green-400'
+										: wsStatus === 'connecting'
+											? 'bg-amber-300 animate-pulse'
+											: 'bg-red-400'}"
+									style="{wsStatus === 'connected' ? 'box-shadow: 0 0 6px #4ade80' : ''}"
+								></span>
+								{#if wsStatus === 'connected'}
+									{connectedCount} watching
+								{:else if wsStatus === 'connecting'}
+									Connecting…
+								{:else}
+									Reconnecting…
+								{/if}
+							</span>
+						</div>
+					{/if}
 				</div>
-				{#if sale.status === 'active'}
-					<p class="mt-1 text-sm" style="color: var(--text-muted)">
-						Ends in <span class="font-semibold text-amber-600"><Countdown endsAt={sale.endsAt} /></span>
-					</p>
+
+				{#if !$auth}
+					<a
+						href="/login"
+						class="rounded-xl px-5 py-2.5 text-sm font-bold transition hover:opacity-90"
+						style="background: rgba(255,255,255,0.2); backdrop-filter: blur(4px)"
+					>
+						Sign in to buy
+					</a>
 				{/if}
 			</div>
-			{#if !$auth}
-				<a href="/login" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-					Sign in to buy
-				</a>
-			{/if}
 		</div>
+	</div>
 
+	<main class="mx-auto max-w-5xl px-4 py-10">
 		{#if products.length === 0}
 			<div class="rounded-2xl border p-12 text-center" style="border-color: var(--border)">
 				<p class="text-sm" style="color: var(--text-muted)">No products in this sale</p>
 			</div>
 		{:else}
 			<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-				{#each products as product}
+				{#each products as product, i}
 					{@const remaining = $inventoryStore[product.id] ?? product.quantity}
 					{@const pct = stockPct(product.id, product.quantity)}
 					{@const disc = discount(product.originalPrice, product.salePrice)}
-					<div class="flex flex-col rounded-2xl border p-5 transition-shadow hover:shadow-sm"
-						style="background: var(--bg-card); border-color: var(--border)">
-
-						<div class="mb-1 flex items-start justify-between gap-2">
-							<h3 class="font-semibold leading-snug">{product.name}</h3>
+					{@const grad = productGradients[i % productGradients.length]}
+					{@const isActive = sale.status === 'active'}
+					{@const canBuy = remaining > 0 && isActive && !!$auth && !buying[product.id]}
+					<div
+						class="flex flex-col overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl animate-fade-up"
+						style="background: var(--bg-card); border: 1px solid var(--border); animation-delay: {i * 60}ms"
+					>
+						<!-- Color swatch header -->
+						<div class="relative h-20" style="background: {grad}">
 							{#if disc > 0}
-								<span class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+								<span
+									class="absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-black text-white"
+									style="background: rgba(0,0,0,0.35)"
+								>
 									-{disc}%
 								</span>
 							{/if}
-						</div>
-
-						<div class="mb-4 flex items-baseline gap-2">
-							<span class="text-2xl font-bold">${product.salePrice}</span>
-							{#if disc > 0}
-								<span class="text-sm line-through" style="color: var(--text-muted)">${product.originalPrice}</span>
+							{#if remaining === 0}
+								<div class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0.5)">
+									<span class="text-sm font-black uppercase tracking-widest text-white">Sold Out</span>
+								</div>
 							{/if}
 						</div>
 
-						<!-- Sold-out banner overlays the bar when stock hits zero -->
-						{#if remaining === 0}
-							<div class="mb-3 rounded-lg bg-red-50 py-2 text-center text-xs font-bold uppercase tracking-widest text-red-600 dark:bg-red-900/20 dark:text-red-400">
-								Sold out
-							</div>
-						{/if}
+						<div class="flex flex-1 flex-col p-4">
+							<h3 class="mb-1 font-bold leading-snug">{product.name}</h3>
 
-						<div class="mt-auto space-y-1.5">
-							<div class="flex justify-between text-xs" style="color: var(--text-muted)">
-								<span>{remaining} of {product.quantity} left</span>
-								<span>{pct}%</span>
+							<div class="mb-4 flex items-baseline gap-2">
+								<span class="text-2xl font-black">${product.salePrice}</span>
+								{#if disc > 0}
+									<span class="text-sm line-through" style="color: var(--text-muted)">${product.originalPrice}</span>
+								{/if}
 							</div>
-							<div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
-								<div
-									class="h-full rounded-full transition-all duration-300 {barColor(pct)}"
-									style="width: {pct}%"
-								></div>
+
+							<!-- Stock bar -->
+							<div class="mt-auto space-y-1.5">
+								<div class="flex justify-between text-xs" style="color: var(--text-muted)">
+									<span>
+										{#if remaining === 0}
+											Sold out
+										{:else if pct < 10}
+											<span class="font-semibold text-red-500">Only {remaining} left!</span>
+										{:else}
+											{remaining} of {product.quantity} left
+										{/if}
+									</span>
+									<span>{pct}%</span>
+								</div>
+								<div class="h-2 w-full overflow-hidden rounded-full" style="background: var(--bg)">
+									<div
+										class="h-full rounded-full transition-all duration-500"
+										style="width: {pct}%; background: {pct > 50 ? 'linear-gradient(90deg,#10b981,#3b82f6)' : pct > 10 ? 'linear-gradient(90deg,#f59e0b,#f97316)' : 'linear-gradient(90deg,#ef4444,#ec4899)'}"
+									></div>
+								</div>
 							</div>
-						</div>
 
-						{#if buyResult[product.id]?.message}
-							<p class="mt-3 text-center text-xs font-medium {buyResult[product.id].success ? 'text-green-600' : 'text-red-500'}">
-								{buyResult[product.id].message}
-							</p>
-						{/if}
-
-						<button
-							disabled={remaining === 0 || sale.status !== 'active' || !$auth || buying[product.id]}
-							onclick={() => handleBuy(product.id)}
-							class="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition
-								disabled:cursor-not-allowed disabled:opacity-40
-								enabled:bg-blue-600 enabled:text-white enabled:hover:bg-blue-700"
-							title={!$auth ? 'Sign in to buy' : undefined}
-						>
-							{#if buying[product.id]}
-								Placing order…
-							{:else if remaining === 0}
-								Sold out
-							{:else if sale.status !== 'active'}
-								Unavailable
-							{:else if !$auth}
-								Sign in to buy
-							{:else}
-								Buy now
+							{#if buyResult[product.id]?.message}
+								<p class="mt-3 rounded-lg px-3 py-1.5 text-center text-xs font-semibold
+									{buyResult[product.id].success
+										? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+										: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}">
+									{buyResult[product.id].message}
+								</p>
 							{/if}
-						</button>
+
+							<button
+								disabled={!canBuy}
+								onclick={() => handleBuy(product.id)}
+								class="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white transition
+									disabled:cursor-not-allowed disabled:opacity-40
+									{canBuy ? 'animate-pulse-glow hover:opacity-90' : ''}"
+								style="{canBuy ? `background: ${grad}` : 'background: var(--bg)'}"
+								title={!$auth ? 'Sign in to buy' : undefined}
+							>
+								{#if buying[product.id]}
+									Placing order…
+								{:else if remaining === 0}
+									Sold out
+								{:else if !isActive}
+									Unavailable
+								{:else if !$auth}
+									Sign in to buy
+								{:else}
+									Buy now
+								{/if}
+							</button>
+						</div>
 					</div>
 				{/each}
 			</div>
 		{/if}
-	{/if}
-</main>
+	</main>
+{/if}
