@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { auth } from '$stores/auth';
 	import { api, ApiError } from '$lib/api';
 	import Countdown from '$components/Countdown.svelte';
@@ -24,8 +25,11 @@
 	let sales = $state<Sale[]>([]);
 	let error = $state('');
 	let loaded = $state(false);
+	let activeTab = $state<'all' | 'limited' | 'ending'>('all');
 
 	onMount(async () => {
+		// Honour ?filter=limited from navbar link
+		if (page.url.searchParams.get('filter') === 'limited') activeTab = 'limited';
 		try {
 			const res = await api<{ sales: Sale[] }>('/sales');
 			sales = res.sales;
@@ -50,7 +54,23 @@
 		return Math.round((liveStock(products) / total) * 100);
 	}
 
+	function msLeft(endsAt: string) {
+		return new Date(endsAt).getTime() - Date.now();
+	}
+
 	const activeSales = $derived(sales.filter((s) => s.status === 'active'));
+
+	const filteredSales = $derived(() => {
+		if (activeTab === 'limited') return activeSales.filter((s) => stockPct(s.products) < 30);
+		if (activeTab === 'ending') return activeSales.filter((s) => msLeft(s.endsAt) < 30 * 60 * 1000);
+		return activeSales;
+	});
+
+	const tabs = [
+		{ id: 'all',     label: '🛒 All Sales' },
+		{ id: 'limited', label: '🔥 Limited Offers' },
+		{ id: 'ending',  label: '⏱ Ending Soon' },
+	] as const;
 
 	// Cycle through gradient pairs for card headers
 	const gradients = [
@@ -87,6 +107,26 @@
 {/if}
 
 <main class="mx-auto max-w-5xl px-4 py-10">
+	<!-- Filter tabs -->
+	{#if loaded && activeSales.length > 0}
+		<div class="mb-8 flex gap-2 overflow-x-auto pb-1">
+			{#each tabs as tab}
+				<button
+					onclick={() => (activeTab = tab.id)}
+					class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-all duration-150
+						{activeTab === tab.id
+							? 'border-transparent text-white'
+							: 'hover:opacity-80'}"
+					style="{activeTab === tab.id
+						? 'background: linear-gradient(135deg,#3b82f6,#8b5cf6); border-color: transparent'
+						: 'background: var(--bg-card); border-color: var(--border); color: var(--text-primary)'}"
+				>
+					{tab.label}
+				</button>
+			{/each}
+		</div>
+	{/if}
+
 	{#if error}
 		<div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">{error}</div>
 	{:else if !loaded}
@@ -102,15 +142,23 @@
 				</div>
 			{/each}
 		</div>
-	{:else if sales.length === 0}
+	{:else if activeSales.length === 0}
 		<div class="rounded-2xl border p-16 text-center" style="border-color: var(--border)">
 			<p class="text-4xl">⚡</p>
 			<p class="mt-4 text-lg font-semibold">No active sales right now</p>
 			<p class="mt-1 text-sm" style="color: var(--text-muted)">Check back soon for flash deals</p>
 		</div>
+	{:else if filteredSales().length === 0}
+		<div class="rounded-2xl border p-12 text-center" style="border-color: var(--border)">
+			<p class="text-3xl">🔍</p>
+			<p class="mt-3 font-semibold">No sales match this filter</p>
+			<button onclick={() => (activeTab = 'all')} class="mt-3 text-sm font-medium text-blue-600 hover:underline">
+				View all sales →
+			</button>
+		</div>
 	{:else}
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each sales as sale, i}
+			{#each filteredSales() as sale, i}
 				{@const pct = stockPct(sale.products)}
 				{@const live = liveStock(sale.products)}
 				{@const grad = gradients[i % gradients.length]}

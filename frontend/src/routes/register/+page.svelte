@@ -6,6 +6,8 @@
 	let email = $state('');
 	let password = $state('');
 	let confirm = $state('');
+	let showPassword = $state(false);
+	let showConfirm = $state(false);
 	let error = $state('');
 	let loading = $state(false);
 
@@ -92,29 +94,59 @@
 
 					<div>
 						<label class="mb-1.5 block text-sm font-medium" for="password">Password</label>
-						<input
-							id="password"
-							type="password"
-							bind:value={password}
-							required
-							minlength="8"
-							autocomplete="new-password"
-							class="w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500"
-							style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
-						/>
+						<div class="relative">
+							<input
+								id="password"
+								type={showPassword ? 'text' : 'password'}
+								bind:value={password}
+								required
+								minlength="8"
+								autocomplete="new-password"
+								class="w-full rounded-lg border px-3 py-2.5 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-blue-500"
+								style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
+							/>
+							<button
+								type="button"
+								onclick={() => (showPassword = !showPassword)}
+								class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition"
+								style="color: var(--text-primary)"
+								aria-label={showPassword ? 'Hide password' : 'Show password'}
+							>
+								{#if showPassword}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+								{:else}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+								{/if}
+							</button>
+						</div>
 					</div>
 
 					<div>
 						<label class="mb-1.5 block text-sm font-medium" for="confirm">Confirm password</label>
-						<input
-							id="confirm"
-							type="password"
-							bind:value={confirm}
-							required
-							autocomplete="new-password"
-							class="w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500"
-							style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
-						/>
+						<div class="relative">
+							<input
+								id="confirm"
+								type={showConfirm ? 'text' : 'password'}
+								bind:value={confirm}
+								required
+								autocomplete="new-password"
+								class="w-full rounded-lg border px-3 py-2.5 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-blue-500"
+								style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
+							/>
+							<button
+								type="button"
+								onclick={() => (showConfirm = !showConfirm)}
+								class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition"
+								style="color: var(--text-primary)"
+								aria-label={showConfirm ? 'Hide password' : 'Show password'}
+							>
+								{#if showConfirm}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+								{:else}
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+								{/if}
+							</button>
+						</div>
 					</div>
 
 					<button

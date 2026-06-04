@@ -36,14 +36,20 @@
 
 		<!-- Desktop nav links -->
 		<div class="hidden flex-1 items-center gap-1 md:flex">
-			<a
-				href="/sales"
-				class="rounded-lg px-3 py-1.5 text-sm font-medium transition hover:opacity-100
-					{currentPath.startsWith('/sales') && !currentPath.startsWith('/admin') ? 'opacity-100' : 'opacity-60 hover:opacity-80'}"
-				style="color: var(--text-primary)"
-			>
-				Sales
-			</a>
+			{#each [
+				{ href: '/sales', label: '🛒 Sales' },
+				{ href: '/sales?filter=limited', label: '🔥 Limited Offers' },
+				{ href: '/how-it-works', label: '💡 How It Works' },
+			] as link}
+				<a
+					href={link.href}
+					class="rounded-lg px-3 py-1.5 text-sm font-medium transition
+						{currentPath === link.href.split('?')[0] && !currentPath.startsWith('/admin') ? 'opacity-100' : 'opacity-60 hover:opacity-80'}"
+					style="color: var(--text-primary)"
+				>
+					{link.label}
+				</a>
+			{/each}
 			{#if $auth}
 				<a
 					href="/orders"
@@ -51,7 +57,7 @@
 						{currentPath === '/orders' ? 'opacity-100' : 'opacity-60 hover:opacity-80'}"
 					style="color: var(--text-primary)"
 				>
-					My Orders
+					📦 My Orders
 				</a>
 			{/if}
 			{#if $auth?.role === 'admin'}
@@ -61,7 +67,7 @@
 						{currentPath.startsWith('/admin') ? 'opacity-100' : 'opacity-60 hover:opacity-80'}"
 					style="color: var(--text-primary)"
 				>
-					Admin
+					⚙️ Admin
 				</a>
 			{/if}
 		</div>
@@ -133,14 +139,20 @@
 	{#if menuOpen}
 		<div class="border-t px-4 pb-4 pt-2 md:hidden" style="border-color: var(--border); background: var(--bg-card)">
 			<div class="flex flex-col gap-1">
-				<a
-					href="/sales"
-					onclick={() => (menuOpen = false)}
-					class="rounded-lg px-3 py-2 text-sm font-medium transition hover:opacity-75"
-					style="color: var(--text-primary)"
-				>
-					Sales
-				</a>
+				{#each [
+					{ href: '/sales', label: '🛒 Sales' },
+					{ href: '/sales?filter=limited', label: '🔥 Limited Offers' },
+					{ href: '/how-it-works', label: '💡 How It Works' },
+				] as link}
+					<a
+						href={link.href}
+						onclick={() => (menuOpen = false)}
+						class="rounded-lg px-3 py-2 text-sm font-medium transition hover:opacity-75"
+						style="color: var(--text-primary)"
+					>
+						{link.label}
+					</a>
+				{/each}
 				{#if $auth}
 					<a
 						href="/orders"
@@ -148,7 +160,7 @@
 						class="rounded-lg px-3 py-2 text-sm font-medium transition hover:opacity-75"
 						style="color: var(--text-primary)"
 					>
-						My Orders
+						📦 My Orders
 					</a>
 				{/if}
 				{#if $auth?.role === 'admin'}
@@ -158,7 +170,7 @@
 						class="rounded-lg px-3 py-2 text-sm font-medium transition hover:opacity-75"
 						style="color: var(--text-primary)"
 					>
-						Admin
+						⚙️ Admin
 					</a>
 				{/if}
 

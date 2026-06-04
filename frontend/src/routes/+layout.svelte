@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$stores/auth';
 	import Navbar from '$components/Navbar.svelte';
+	import Ticker from '$components/Ticker.svelte';
 
 	let { children } = $props();
 
@@ -15,5 +16,6 @@
 	});
 </script>
 
+<Ticker />
 <Navbar />
 {@render children()}
