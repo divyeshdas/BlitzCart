@@ -60,11 +60,11 @@
 
 	const activeSales = $derived(sales.filter((s) => s.status === 'active'));
 
-	const filteredSales = $derived(() => {
-		if (activeTab === 'limited') return activeSales.filter((s) => stockPct(s.products) < 30);
-		if (activeTab === 'ending') return activeSales.filter((s) => msLeft(s.endsAt) < 30 * 60 * 1000);
-		return activeSales;
-	});
+	const filteredSales = $derived(
+		activeTab === 'limited' ? activeSales.filter((s) => stockPct(s.products) < 50) :
+		activeTab === 'ending'  ? activeSales.filter((s) => msLeft(s.endsAt) < 30 * 60 * 1000) :
+		activeSales
+	);
 
 	const tabs = [
 		{ id: 'all',     label: '🛒 All Sales' },
@@ -148,7 +148,7 @@
 			<p class="mt-4 text-lg font-semibold">No active sales right now</p>
 			<p class="mt-1 text-sm" style="color: var(--text-muted)">Check back soon for flash deals</p>
 		</div>
-	{:else if filteredSales().length === 0}
+	{:else if filteredSales.length === 0}
 		<div class="rounded-2xl border p-12 text-center" style="border-color: var(--border)">
 			<p class="text-3xl">🔍</p>
 			<p class="mt-3 font-semibold">No sales match this filter</p>
@@ -158,7 +158,7 @@
 		</div>
 	{:else}
 		<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{#each filteredSales() as sale, i}
+			{#each filteredSales as sale, i}
 				{@const pct = stockPct(sale.products)}
 				{@const live = liveStock(sale.products)}
 				{@const grad = gradients[i % gradients.length]}
