@@ -12,6 +12,7 @@
 		originalPrice: string;
 		quantity: number;
 		inventoryRemaining: number | null;
+		imageUrl: string | null;
 	};
 
 	type Sale = {
@@ -162,14 +163,19 @@
 				{@const pct = stockPct(sale.products)}
 				{@const live = liveStock(sale.products)}
 				{@const grad = gradients[i % gradients.length]}
+				{@const firstImage = sale.products.find((p) => p.imageUrl)?.imageUrl ?? null}
 				<a
 					href="/sales/{sale.id}"
 					class="group block overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-xl animate-fade-up"
 					style="background: var(--bg-card); border: 1px solid var(--border); animation-delay: {i * 80}ms"
 				>
-					<!-- Gradient header area -->
-					<div class="relative flex h-32 items-end p-4" style="background: {grad}">
-						<h2 class="text-lg font-bold leading-tight text-white drop-shadow">{sale.name}</h2>
+					<!-- Sale card header — product image or gradient fallback -->
+					<div class="relative flex h-40 items-end overflow-hidden p-4" style="background: {grad}">
+						{#if firstImage}
+							<img src={firstImage} alt={sale.name} class="absolute inset-0 h-full w-full object-cover opacity-80" />
+							<div class="absolute inset-0" style="background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)"></div>
+						{/if}
+						<h2 class="relative text-lg font-bold leading-tight text-white drop-shadow">{sale.name}</h2>
 						<!-- Countdown pill -->
 						<span
 							class="absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold text-white"

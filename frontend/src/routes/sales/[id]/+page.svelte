@@ -15,6 +15,7 @@
 		originalPrice: string;
 		quantity: number;
 		inventoryRemaining: number | null;
+		imageUrl: string | null;
 	};
 
 	type Sale = {
@@ -234,21 +235,28 @@
 					{@const isActive = sale.status === 'active'}
 					{@const canBuy = remaining > 0 && isActive && !!$auth && !buying[product.id]}
 					<div
-						class="flex flex-col overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl animate-fade-up"
+						class="group flex flex-col overflow-hidden rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl animate-fade-up"
 						style="background: var(--bg-card); border: 1px solid var(--border); animation-delay: {i * 60}ms"
 					>
-						<!-- Color swatch header -->
-						<div class="relative h-20" style="background: {grad}">
+						<!-- Product image or gradient fallback -->
+						<div class="relative h-48 overflow-hidden" style="background: {grad}">
+							{#if product.imageUrl}
+								<img
+									src={product.imageUrl}
+									alt={product.name}
+									class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+								/>
+							{/if}
 							{#if disc > 0}
 								<span
 									class="absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-black text-white"
-									style="background: rgba(0,0,0,0.35)"
+									style="background: rgba(0,0,0,0.45); backdrop-filter: blur(4px)"
 								>
 									-{disc}%
 								</span>
 							{/if}
 							{#if remaining === 0}
-								<div class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0.5)">
+								<div class="absolute inset-0 flex items-center justify-center" style="background: rgba(0,0,0,0.55)">
 									<span class="text-sm font-black uppercase tracking-widest text-white">Sold Out</span>
 								</div>
 							{/if}

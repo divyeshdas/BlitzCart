@@ -36,10 +36,31 @@
 	let formName = $state('');
 	let formStartsAt = $state('');
 	let formEndsAt = $state('');
-	let formProducts = $state([{ name: '', originalPrice: '', salePrice: '', quantity: 1 }]);
+	let formProducts = $state([{ name: '', originalPrice: '', salePrice: '', quantity: 1, imageUrl: '', uploading: false }]);
 	let formError = $state('');
 	let formLoading = $state(false);
 	let showForm = $state(false);
+
+	async function handleImageUpload(index: number, file: File) {
+		formProducts[index].uploading = true;
+		try {
+			const body = new FormData();
+			body.append('image', file);
+			const token = localStorage.getItem('access_token') ?? '';
+			const res = await fetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'}/admin/upload`, {
+				method: 'POST',
+				headers: { Authorization: `Bearer ${token}` },
+				body,
+			});
+			const data = await res.json() as { url?: string; error?: string };
+			if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+			formProducts[index].imageUrl = data.url ?? '';
+		} catch (err) {
+			formError = err instanceof Error ? err.message : 'Image upload failed';
+		} finally {
+			formProducts[index].uploading = false;
+		}
+	}
 
 	async function loadSales() {
 		try {
@@ -53,7 +74,7 @@
 	onMount(loadSales);
 
 	function addProduct() {
-		formProducts = [...formProducts, { name: '', originalPrice: '', salePrice: '', quantity: 1 }];
+		formProducts = [...formProducts, { name: '', originalPrice: '', salePrice: '', quantity: 1, imageUrl: '', uploading: false }];
 	}
 
 	function removeProduct(i: number) {
@@ -73,8 +94,11 @@
 					startsAt: new Date(formStartsAt).toISOString(),
 					endsAt: new Date(formEndsAt).toISOString(),
 					products: formProducts.map((p) => ({
-						...p,
+						name: p.name,
+						originalPrice: p.originalPrice,
+						salePrice: p.salePrice,
 						quantity: Number(p.quantity),
+						...(p.imageUrl ? { imageUrl: p.imageUrl } : {}),
 					})),
 				},
 			});
@@ -82,7 +106,7 @@
 			formName = '';
 			formStartsAt = '';
 			formEndsAt = '';
-			formProducts = [{ name: '', originalPrice: '', salePrice: '', quantity: 1 }];
+			formProducts = [{ name: '', originalPrice: '', salePrice: '', quantity: 1, imageUrl: '', uploading: false }];
 			showForm = false;
 			await loadSales();
 		} catch (err) {
@@ -182,7 +206,34 @@
 
 					<div class="space-y-3">
 						{#each formProducts as product, i}
-							<div class="grid gap-3 rounded-lg border p-3 sm:grid-cols-5" style="border-color: var(--border)">
+							<div class="rounded-lg border p-3 space-y-3" style="border-color: var(--border)">
+								<!-- Image upload row -->
+								<div class="flex items-center gap-3">
+									{#if product.imageUrl}
+										<img src={product.imageUrl} alt="Product preview" class="h-16 w-16 rounded-lg object-cover" />
+									{:else}
+										<div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg text-2xl" style="background: var(--bg)">📦</div>
+									{/if}
+									<label class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition hover:opacity-75" style="border-color: var(--border); color: var(--text-primary)">
+										{#if product.uploading}
+											<span class="animate-pulse" style="color: var(--text-muted)">Uploading…</span>
+										{:else}
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+											{product.imageUrl ? 'Replace image' : 'Upload image'}
+										{/if}
+										<input
+											type="file"
+											accept="image/*"
+											class="hidden"
+											onchange={(e) => {
+												const file = (e.target as HTMLInputElement).files?.[0];
+												if (file) handleImageUpload(i, file);
+											}}
+										/>
+									</label>
+								</div>
+								<!-- Fields row -->
+								<div class="grid gap-3 sm:grid-cols-5">
 								<div class="sm:col-span-2">
 									<input
 										type="text"
@@ -236,7 +287,8 @@
 										</button>
 									{/if}
 								</div>
-							</div>
+								</div><!-- end fields row -->
+							</div><!-- end product card -->
 						{/each}
 					</div>
 				</div>
