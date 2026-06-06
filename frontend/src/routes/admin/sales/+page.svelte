@@ -4,6 +4,7 @@
 	import { api, ApiError } from '$lib/api';
 	import { auth } from '$stores/auth';
 	import StatusBadge from '$components/StatusBadge.svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
 	$effect(() => {
 		if (!$auth || $auth.role !== 'admin') goto('/login');
@@ -47,7 +48,7 @@
 			const body = new FormData();
 			body.append('image', file);
 			const token = localStorage.getItem('access_token') ?? '';
-			const res = await fetch(`${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000'}/admin/upload`, {
+			const res = await fetch(`${PUBLIC_API_URL ?? 'http://localhost:3000'}/admin/upload`, {
 				method: 'POST',
 				headers: { Authorization: `Bearer ${token}` },
 				body,
