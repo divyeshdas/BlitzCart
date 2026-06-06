@@ -22,4 +22,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=deps /app/node_modules ./node_modules
 COPY backend/package.json ./
 EXPOSE 3000
-CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js && node dist/index.js"]
