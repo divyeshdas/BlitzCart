@@ -12,6 +12,7 @@ export const products = pgTable(
     originalPrice: numeric('original_price', { precision: 10, scale: 2 }).notNull(),
     salePrice: numeric('sale_price', { precision: 10, scale: 2 }).notNull(),
     quantity: integer('quantity').notNull(),
+    imageUrl: varchar('image_url', { length: 1024 }),
   },
   (t) => ({
     saleIdIdx: index('products_sale_id_idx').on(t.saleId),

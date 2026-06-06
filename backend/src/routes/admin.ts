@@ -15,6 +15,7 @@ const productSchema = z.object({
   originalPrice: z.string().regex(/^\d+(\.\d{1,2})?$/),
   salePrice: z.string().regex(/^\d+(\.\d{1,2})?$/),
   quantity: z.number().int().positive(),
+  imageUrl: z.string().url().optional(),
 });
 
 const createSaleSchema = z.object({
@@ -58,6 +59,7 @@ router.post('/sales', async (req, res) => {
       originalPrice: p.originalPrice,
       salePrice: p.salePrice,
       quantity: p.quantity,
+      imageUrl: p.imageUrl ?? null,
     })))
     .returning();
 
