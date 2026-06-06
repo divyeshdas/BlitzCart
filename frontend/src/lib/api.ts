@@ -19,6 +19,26 @@ export class ApiError extends Error {
 	}
 }
 
+async function tryRefreshToken(): Promise<string | null> {
+	if (!browser) return null;
+	const refreshToken = localStorage.getItem('refresh_token');
+	if (!refreshToken) return null;
+
+	try {
+		const res = await fetch(`${BASE}/auth/refresh`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ refreshToken }),
+		});
+		if (!res.ok) return null;
+		const data = await res.json() as { accessToken: string };
+		localStorage.setItem('access_token', data.accessToken);
+		return data.accessToken;
+	} catch {
+		return null;
+	}
+}
+
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
@@ -30,6 +50,21 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
 		headers,
 		body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
 	});
+
+	// Token expired — try to refresh and retry once
+	if (res.status === 401 && !opts.token) {
+		const newToken = await tryRefreshToken();
+		if (newToken) {
+			return api<T>(path, { ...opts, token: newToken });
+		}
+		// Refresh failed — clear session and redirect to login
+		if (browser) {
+			localStorage.removeItem('access_token');
+			localStorage.removeItem('refresh_token');
+			localStorage.removeItem('auth_user');
+			window.location.href = '/login';
+		}
+	}
 
 	if (!res.ok) {
 		const err = (await res.json().catch(() => ({ error: res.statusText, code: 'UNKNOWN' }))) as {
