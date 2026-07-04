@@ -11,13 +11,20 @@ import { attachWebSocketServer, getAllRoomSizes } from './services/ws-server.js'
 import { wsClientsGauge } from './lib/metrics.js';
 
 async function main(): Promise<void> {
+  // Start listening first so the health check responds immediately, before
+  // the slower Redis/Lua/worker setup runs.
+  const app = createApp();
+  const server = http.createServer(app);
+
+  server.listen(env.PORT, () => {
+    logger.info({ port: env.PORT }, 'server listening');
+  });
+
   await connectRedis();
   logger.info('redis connected');
 
   await loadLuaScripts();
 
-  const app = createApp();
-  const server = http.createServer(app);
   const wss = attachWebSocketServer(server);
   const schedulerTask = startScheduler();
   const orderWorker = startOrderWorker();
@@ -27,10 +34,6 @@ async function main(): Promise<void> {
       wsClientsGauge.set({ sale_id: saleId }, count);
     }
   }, 5000);
-
-  server.listen(env.PORT, () => {
-    logger.info({ port: env.PORT }, 'server listening');
-  });
 
   async function shutdown(signal: string): Promise<void> {
     logger.info({ signal }, 'shutdown signal received');

@@ -14,10 +14,11 @@ async function runMigrations(): Promise<void> {
   const migrationsFolder = join(__dirname, 'migrations');
   await migrate(db, { migrationsFolder });
   process.stdout.write('Migrations complete\n');
-  await pool.end();
 }
 
-runMigrations().catch((err) => {
-  process.stderr.write(`Migration failed: ${String(err)}\n`);
-  process.exit(1);
-});
+runMigrations()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    process.stderr.write(`Migration failed: ${String(err)}\n`);
+    process.exit(1);
+  });

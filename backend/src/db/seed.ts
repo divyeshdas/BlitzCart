@@ -22,11 +22,11 @@ async function seed(): Promise<void> {
   } else {
     process.stdout.write('Admin already exists, skipping\n');
   }
-
-  await pool.end();
 }
 
-seed().catch((err) => {
-  process.stderr.write(`Seed failed: ${String(err)}\n`);
-  process.exit(1);
-});
+seed()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    process.stderr.write(`Seed failed: ${String(err)}\n`);
+    process.exit(1);
+  });
